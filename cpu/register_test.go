@@ -40,26 +40,32 @@ func TestRegisterSetCheckBit(t *testing.T) {
 func TestRegisterSetGetPair(t *testing.T) {
 	high := NewRegister()
 	low := NewRegister()
-	if GetPair(high, low) != 0 {
-		t.Errorf("value %d in pair after register creation", GetPair(high, low))
+	r := NewRegisterPair(high, low)
+	if r.Get() != 0 {
+		t.Errorf("value %d in pair after register creation", r.Get())
 	}
 
-	SetPair(high, low, 450)
-	if GetPair(high, low) != 450 {
-		t.Errorf("value %d in pair after being set to 450", GetPair(high, low))
+	r.Set(450)
+	if r.Get() != 450 {
+		t.Errorf("value %d in pair after being set to 450", r.Get())
 	}
 }
 
 func TestRegisterIncrementDecrementPair(t *testing.T) {
 	high := NewRegister()
 	low := NewRegister()
-	SetPair(high, low, 255)
-	IncrementPair(high, low)
-	if GetPair(high, low) != 256 {
-		t.Errorf("value %d in pair after incrementing 255", GetPair(high, low))
+	r := NewRegisterPair(high, low)
+	r.Set(255)
+	r.Increment()
+	if r.Get() != 256 {
+		t.Errorf("value %d in pair after incrementing 255", r.Get())
 	}
-	DecrementPair(high, low)
-	if GetPair(high, low) != 255 {
-		t.Errorf("value %d in pair after decrementing 256", GetPair(high, low))
+	r.Decrement()
+	if r.Get() != 255 {
+		t.Errorf("value %d in pair after decrementing 256", r.Get())
+	}
+	r.Decrement()
+	if r.Get() != 254 {
+		t.Errorf("value %d in pair after decrementing 255", r.Get())
 	}
 }

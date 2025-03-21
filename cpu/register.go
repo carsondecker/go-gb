@@ -48,29 +48,31 @@ func (r *Register) String() string {
 	return fmt.Sprintf("%08b", r.Get())
 }
 
-func GetPair(high *Register, low *Register) uint16 {
-	return uint16(high.Get())<<8 + uint16(low.Get())
+type RegisterPair struct {
+	high *Register
+	low  *Register
 }
 
-func SetPair(high *Register, low *Register, val uint16) {
-	high.Set(byte(val >> 8))
-	low.Set(byte(val))
-}
-
-func IncrementPair(high *Register, low *Register) {
-	if low.Get() == 255 {
-		high.Increment()
-		low.Increment()
-	} else {
-		low.Increment()
+func NewRegisterPair(high *Register, low *Register) *RegisterPair {
+	return &RegisterPair{
+		high,
+		low,
 	}
 }
 
-func DecrementPair(high *Register, low *Register) {
-	if low.Get() == 0 {
-		high.Decrement()
-		low.Decrement()
-	} else {
-		low.Decrement()
-	}
+func (r *RegisterPair) Get() uint16 {
+	return uint16(r.high.Get())<<8 + uint16(r.low.Get())
+}
+
+func (r *RegisterPair) Set(val uint16) {
+	r.high.Set(byte(val >> 8))
+	r.low.Set(byte(val))
+}
+
+func (r *RegisterPair) Increment() {
+	r.Set(r.Get() + 1)
+}
+
+func (r *RegisterPair) Decrement() {
+	r.Set(r.Get() - 1)
 }
