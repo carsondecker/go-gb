@@ -39,10 +39,7 @@ func (cpu *CPU) INC_r8(r *byte) {
 }
 
 func INC_r16(r *WordRegister) {
-	if *r.low == 255 {
-		(*r.high)++
-	}
-	(*r.low)++
+	r.Set(r.Get() + 1)
 }
 
 // DEC Operations
@@ -68,3 +65,5 @@ func (cpu *CPU) RLC(r *byte) {
 		cpu.Registers.SetZeroFlag(true)
 	}
 }
+
+// TODO: Fix flags, I messed them up pretty bad
