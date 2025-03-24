@@ -7,7 +7,7 @@ func NOP() {
 	// no operation
 }
 
-// Load instructions
+// Load Instructions
 
 // LD r8,r8 | LD r8,n8 | LD r8,[HL] | LD A,[r16] | LD A,[n16]
 func LD_r8_n8(r *byte, n byte) {
@@ -70,6 +70,30 @@ func (cpu *CPU) LD_A_HLI() {
 func (cpu *CPU) LD_A_HLD() {
 	cpu.Registers.A = cpu.Bus.ReadByte(cpu.Registers.HL.Get())
 	cpu.Registers.HL.Set(cpu.Registers.HL.Get() + 1)
+}
+
+// 8-Bit Arithmetic Instructions
+
+// ADC A,r8 | ADC A,[HL] | ADC A,n8
+func (cpu *CPU) ADC_A_n8(n byte) {
+	var c byte
+	if cpu.Registers.GetCarryFlag() {
+		c = 1
+	} else {
+		c = 0
+	}
+	cpu.Registers.SetHalfCarryFlag((((cpu.Registers.A & 0xF) + (n & 0xF) + c) & 0x10) == 0x10)
+	cpu.Registers.SetCarryFlag(uint16(cpu.Registers.A)+uint16(n)+uint16(c) > 0xFF)
+	cpu.Registers.A = cpu.Registers.A + n
+	cpu.Registers.SetZeroFlag(cpu.Registers.A == 0)
+}
+
+// ADD A,r8 | ADD A,[HL] | ADD A,n8
+func (cpu *CPU) ADD_A_n8(n byte) {
+	cpu.Registers.SetHalfCarryFlag((((cpu.Registers.A & 0xF) + (n & 0xF)) & 0x10) == 0x10)
+	cpu.Registers.SetCarryFlag(uint16(cpu.Registers.A)+uint16(n) > 0xFF)
+	cpu.Registers.A = cpu.Registers.A + n
+	cpu.Registers.SetZeroFlag(cpu.Registers.A == 0)
 }
 
 // Stack Manipulation Instructions

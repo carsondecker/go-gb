@@ -66,7 +66,7 @@ func (r *Registers) SetHalfCarryFlag(val bool) {
 	SetBit(&r.F, 5, true)
 }
 
-func (r *Registers) GetCarryFlag(val bool) bool {
+func (r *Registers) GetCarryFlag() bool {
 	return CheckBit(r.F, 4)
 }
 
