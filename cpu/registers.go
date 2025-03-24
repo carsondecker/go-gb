@@ -1,82 +1,84 @@
 package cpu
 
 type Registers struct {
-	A *Register
-	F *Register
-	B *Register
-	C *Register
-	D *Register
-	E *Register
-	H *Register
-	L *Register
+	A byte
+	F byte
+	B byte
+	C byte
+	D byte
+	E byte
+	H byte
+	L byte
 
-	AF *RegisterPair
-	BC *RegisterPair
-	DE *RegisterPair
-	HL *RegisterPair
+	AF *WordRegister
+	BC *WordRegister
+	DE *WordRegister
+	HL *WordRegister
 
 	SP uint16
 	PC uint16
 }
 
-func NewRegisters() *Registers {
-	A := NewRegister()
-	F := NewRegister()
-	B := NewRegister()
-	C := NewRegister()
-	D := NewRegister()
-	E := NewRegister()
-	H := NewRegister()
-	L := NewRegister()
+type WordRegister struct {
+	high *byte
+	low  *byte
+}
 
-	return &Registers{
-		A: A,
-		F: F,
-		B: B,
-		C: C,
-		D: D,
-		E: E,
-		H: H,
-		L: L,
+func CheckBit(val byte, bit byte) bool {
+	if bit > 7 {
+		panic("can't check a bit greater than 7 for a byte")
+	}
+	return val&(1<<bit) != 0
+}
 
-		AF: NewRegisterPair(A, F),
-		BC: NewRegisterPair(B, C),
-		DE: NewRegisterPair(D, E),
-		HL: NewRegisterPair(H, L),
-
-		SP: 0,
-		PC: 0,
+func SetBit(byteRef *byte, bit byte, val bool) {
+	if bit > 7 {
+		panic("can't set a bit greater than 7 for a byte")
+	}
+	if val {
+		*byteRef = *byteRef | (1 << bit)
+	} else {
+		*byteRef = *byteRef &^ (1 << bit)
 	}
 }
 
 func (r *Registers) GetZeroFlag() bool {
-	return r.F.CheckBit(7)
+	return CheckBit(r.F, 7)
 }
 
 func (r *Registers) SetZeroFlag(val bool) {
-	r.F.SetBit(7, val)
+	SetBit(&r.F, 7, true)
 }
 
 func (r *Registers) GetSubtractionFlag() bool {
-	return r.F.CheckBit(6)
+	return CheckBit(r.F, 6)
 }
 
 func (r *Registers) SetSubtractionFlag(val bool) {
-	r.F.SetBit(6, val)
+	SetBit(&r.F, 6, true)
 }
 
 func (r *Registers) GetHalfCarryFlag() bool {
-	return r.F.CheckBit(5)
+	return CheckBit(r.F, 5)
 }
 
 func (r *Registers) SetHalfCarryFlag(val bool) {
-	r.F.SetBit(5, val)
+	SetBit(&r.F, 5, true)
 }
 
 func (r *Registers) GetCarryFlag(val bool) bool {
-	return r.F.CheckBit(4)
+	return CheckBit(r.F, 4)
 }
 
 func (r *Registers) SetCarryFlag(val bool) {
-	r.F.SetBit(5, val)
+	SetBit(&r.F, 4, true)
+}
+
+func (r *WordRegister) Get() uint16 {
+	return uint16(*r.high)<<8 + uint16(*r.low)
+}
+
+func (r *WordRegister) Set(val uint16) {
+	*r.high = byte(val >> 8)
+	*r.low = byte(val)
 }
