@@ -164,7 +164,7 @@ func (cpu *CPU) SUB_A_n8(n byte) {
 	cpu.Registers.SetZeroFlag(cpu.Registers.A == 0)
 }
 
-// 16-Bit Instructions
+// 16-Bit Arithmetic Instructions
 
 // ADD HL,r16
 func (cpu *CPU) ADD_HL_n16(n uint16) {
@@ -183,6 +183,42 @@ func DEC_r16(r *WordRegister) {
 // INC r16
 func INC_r16(r *WordRegister) {
 	r.Set(r.Get() + 1)
+}
+
+// Bitwise Logic Instructions
+
+// AND A,r8 | AND A,[HL] | AND A,n8
+func (cpu *CPU) AND_A_n8(n byte) {
+	cpu.Registers.A &= n
+	cpu.Registers.SetZeroFlag(cpu.Registers.A == 0)
+	cpu.Registers.SetCarryFlag(false)
+	cpu.Registers.SetHalfCarryFlag(true)
+	cpu.Registers.SetSubtractionFlag(false)
+}
+
+// CPL
+func (cpu *CPU) CPL() {
+	cpu.Registers.A = ^cpu.Registers.A
+	cpu.Registers.SetSubtractionFlag(true)
+	cpu.Registers.SetHalfCarryFlag(true)
+}
+
+// OR A,r8 | OR A,[HL] | OR A,n8
+func (cpu *CPU) OR_A_n8(n byte) {
+	cpu.Registers.A |= n
+	cpu.Registers.SetZeroFlag(cpu.Registers.A == 0)
+	cpu.Registers.SetCarryFlag(false)
+	cpu.Registers.SetHalfCarryFlag(false)
+	cpu.Registers.SetSubtractionFlag(false)
+}
+
+// XOR A,r8 | XOR A,[HL] | XOR A,n8
+func (cpu *CPU) XOR_A_n8(n byte) {
+	cpu.Registers.A ^= n
+	cpu.Registers.SetZeroFlag(cpu.Registers.A == 0)
+	cpu.Registers.SetCarryFlag(false)
+	cpu.Registers.SetHalfCarryFlag(false)
+	cpu.Registers.SetSubtractionFlag(false)
 }
 
 // Stack Manipulation Instructions
