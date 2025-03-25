@@ -166,7 +166,7 @@ func (cpu *CPU) SUB_A_n8(n byte) {
 
 // 16-Bit Arithmetic Instructions
 
-// ADD HL,r16
+// ADD HL,r16 | ADD HL,SP
 func (cpu *CPU) ADD_HL_n16(n uint16) {
 	cpu.Registers.SetSubtractionFlag(false)
 	cpu.Registers.SetHalfCarryFlag((cpu.Registers.HL.Get()&0x0FFF)+(n&0x0FFF)&0x1FFF == 0x1FFF)
@@ -221,12 +221,423 @@ func (cpu *CPU) XOR_A_n8(n byte) {
 	cpu.Registers.SetSubtractionFlag(false)
 }
 
+// Bit Flag Instructions
+
+// BIT u3,r8 | BIT u3,[HL]
+func (cpu *CPU) BIT_n8_n8(bit byte, n byte) {
+	cpu.Registers.SetZeroFlag(!CheckBit(n, bit))
+	cpu.Registers.SetSubtractionFlag(false)
+	cpu.Registers.SetHalfCarryFlag(true)
+}
+
+// RES u3,r8
+func RES_n8_r8(bit byte, r *byte) {
+	SetBit(r, bit, false)
+}
+
+// RES u3,[HL]
+func (cpu *CPU) RES_n8_a16(bit byte, a uint16) {
+	cpu.Bus.SetByte(a, cpu.Bus.ReadByte(a)&^(1<<bit))
+}
+
+// SET u3,r8
+func SET_n8_r8(bit byte, r *byte) {
+	SetBit(r, bit, true)
+}
+
+// SET u3,[HL]
+func (cpu *CPU) SET_n8_a16(bit byte, a uint16) {
+	cpu.Bus.SetByte(a, cpu.Bus.ReadByte(a)|(1<<bit))
+}
+
+// Bit Shift Instructions
+
+// RL r8 | RLA
+func (cpu *CPU) RL_r8(r *byte) {
+	var c byte
+	if cpu.Registers.GetCarryFlag() {
+		c = 1
+	} else {
+		c = 0
+	}
+	cpu.Registers.SetCarryFlag(*r&0x80 != 0)
+	cpu.Registers.SetSubtractionFlag(false)
+	cpu.Registers.SetHalfCarryFlag(false)
+	*r = ((*r) << 1) | c
+	cpu.Registers.SetZeroFlag(*r == 0)
+}
+
+// RL [HL]
+func (cpu *CPU) RL_a16(a uint16) {
+	var c byte
+	if cpu.Registers.GetCarryFlag() {
+		c = 1
+	} else {
+		c = 0
+	}
+	val := cpu.Bus.ReadByte(a)
+	cpu.Registers.SetCarryFlag(val&0x80 != 0)
+	cpu.Registers.SetSubtractionFlag(false)
+	cpu.Registers.SetHalfCarryFlag(false)
+	cpu.Bus.SetByte(a, (val<<1)|c)
+	cpu.Registers.SetZeroFlag(cpu.Bus.ReadByte(a) == 0)
+}
+
+// RLC r8 | RLCA
+func (cpu *CPU) RLC_r8(r *byte) {
+	cpu.Registers.SetCarryFlag(*r&0x80 != 0)
+	cpu.Registers.SetSubtractionFlag(false)
+	cpu.Registers.SetHalfCarryFlag(false)
+	*r = *r<<1 | *r>>7
+	cpu.Registers.SetZeroFlag(*r == 0)
+}
+
+// RLC [HL]
+func (cpu *CPU) RLC_a16(a uint16) {
+	val := cpu.Bus.ReadByte(a)
+	cpu.Registers.SetCarryFlag(val&0x80 != 0)
+	cpu.Registers.SetSubtractionFlag(false)
+	cpu.Registers.SetHalfCarryFlag(false)
+	cpu.Bus.SetByte(a, val<<1|val>>7)
+	cpu.Registers.SetZeroFlag(cpu.Bus.ReadByte(a) == 0)
+}
+
+// RR r8 | RRA
+func (cpu *CPU) RR_r8(r *byte) {
+	var c byte
+	if cpu.Registers.GetCarryFlag() {
+		c = 1
+	} else {
+		c = 0
+	}
+	cpu.Registers.SetCarryFlag(*r&0x01 != 0)
+	cpu.Registers.SetSubtractionFlag(false)
+	cpu.Registers.SetHalfCarryFlag(false)
+	*r = ((*r) >> 1) | c<<7
+	cpu.Registers.SetZeroFlag(*r == 0)
+}
+
+// RR [HL]
+func (cpu *CPU) RR_a16(a uint16) {
+	var c byte
+	if cpu.Registers.GetCarryFlag() {
+		c = 1
+	} else {
+		c = 0
+	}
+	val := cpu.Bus.ReadByte(a)
+	cpu.Registers.SetCarryFlag(val&0x01 != 0)
+	cpu.Registers.SetSubtractionFlag(false)
+	cpu.Registers.SetHalfCarryFlag(false)
+	cpu.Bus.SetByte(a, (val>>1)|c<<7)
+	cpu.Registers.SetZeroFlag(cpu.Bus.ReadByte(a) == 0)
+}
+
+// RRC r8 | RRCA
+func (cpu *CPU) RRC_r8(r *byte) {
+	cpu.Registers.SetCarryFlag(*r&0x01 != 0)
+	cpu.Registers.SetSubtractionFlag(false)
+	cpu.Registers.SetHalfCarryFlag(false)
+	*r = (*r)>>1 | (*r)<<7
+	cpu.Registers.SetZeroFlag(*r == 0)
+}
+
+// RRC a16
+func (cpu *CPU) RRC_a16(a uint16) {
+	val := cpu.Bus.ReadByte(a)
+	cpu.Registers.SetCarryFlag(val&0x01 != 0)
+	cpu.Registers.SetSubtractionFlag(false)
+	cpu.Registers.SetHalfCarryFlag(false)
+	cpu.Bus.SetByte(a, val>>1|val<<7)
+	cpu.Registers.SetZeroFlag(cpu.Bus.ReadByte(a) == 0)
+}
+
+// SLA r8
+func (cpu *CPU) SLA_r8(r *byte) {
+	cpu.Registers.SetCarryFlag((*r)&0x80 != 0)
+	cpu.Registers.SetSubtractionFlag(false)
+	cpu.Registers.SetHalfCarryFlag(false)
+	*r = (*r) << 1
+	cpu.Registers.SetZeroFlag(*r == 0)
+}
+
+// SLA [HL]
+func (cpu *CPU) SLA_a16(a uint16) {
+	val := cpu.Bus.ReadByte(a)
+	cpu.Registers.SetCarryFlag(val&0x80 != 0)
+	cpu.Registers.SetSubtractionFlag(false)
+	cpu.Registers.SetHalfCarryFlag(false)
+	cpu.Bus.SetByte(a, val<<1)
+	cpu.Registers.SetZeroFlag(cpu.Bus.ReadByte(a) == 0)
+}
+
+// SRA r8
+func (cpu *CPU) SRA_r8(r *byte) {
+	cpu.Registers.SetCarryFlag((*r)&0x01 != 0)
+	cpu.Registers.SetSubtractionFlag(false)
+	cpu.Registers.SetHalfCarryFlag(false)
+	*r = ((*r) >> 1) | ((*r) & 0x80)
+	cpu.Registers.SetZeroFlag(*r == 0)
+}
+
+// SRA [HL]
+func (cpu *CPU) SRA_a16(a uint16) {
+	val := cpu.Bus.ReadByte(a)
+	cpu.Registers.SetCarryFlag(val&0x80 != 0)
+	cpu.Registers.SetSubtractionFlag(false)
+	cpu.Registers.SetHalfCarryFlag(false)
+	cpu.Bus.SetByte(a, (val>>1)|(val&0x80))
+	cpu.Registers.SetZeroFlag(cpu.Bus.ReadByte(a) == 0)
+}
+
+// SRL r8
+func (cpu *CPU) SRL_r8(r *byte) {
+	cpu.Registers.SetCarryFlag((*r)&0x01 != 0)
+	cpu.Registers.SetSubtractionFlag(false)
+	cpu.Registers.SetHalfCarryFlag(false)
+	*r = (*r) >> 1
+	cpu.Registers.SetZeroFlag(*r == 0)
+}
+
+// SRL [HL]
+func (cpu *CPU) SRL_a16(a uint16) {
+	val := cpu.Bus.ReadByte(a)
+	cpu.Registers.SetCarryFlag(val&0x80 != 0)
+	cpu.Registers.SetSubtractionFlag(false)
+	cpu.Registers.SetHalfCarryFlag(false)
+	cpu.Bus.SetByte(a, val>>1)
+	cpu.Registers.SetZeroFlag(cpu.Bus.ReadByte(a) == 0)
+}
+
+// SWAP r8
+func (cpu *CPU) SWAP_r8(r *byte) {
+	cpu.Registers.SetCarryFlag(false)
+	cpu.Registers.SetSubtractionFlag(false)
+	cpu.Registers.SetHalfCarryFlag(false)
+	*r = (((*r) & 0xF0) >> 4) | (((*r) & 0x0F) << 4)
+	cpu.Registers.SetZeroFlag(*r == 0)
+}
+
+// SWAP [HL]
+func (cpu *CPU) SWAP_a16(a uint16) {
+	val := cpu.Bus.ReadByte(a)
+	cpu.Registers.SetCarryFlag(false)
+	cpu.Registers.SetSubtractionFlag(false)
+	cpu.Registers.SetHalfCarryFlag(false)
+	cpu.Bus.SetByte(a, (((val)&0xF0)>>4)|(((val)&0x0F)<<4))
+	cpu.Registers.SetZeroFlag(cpu.Bus.ReadByte(a) == 0)
+}
+
+// Jumps and Subroutine Instructions
+
+// CALL n16
+func (cpu *CPU) CALL_n16(n uint16) {
+	cpu.Registers.SP--
+	cpu.Bus.SetByte(cpu.Registers.SP, byte(cpu.Registers.PC))
+	cpu.Registers.SP--
+	cpu.Bus.SetByte(cpu.Registers.SP, byte(cpu.Registers.PC>>4))
+	cpu.Registers.PC = n
+}
+
+// CALL Z,n16
+func (cpu *CPU) CALL_Z_n16(n uint16) {
+	if cpu.Registers.GetZeroFlag() {
+		cpu.CALL_n16(n)
+	}
+}
+
+// CALL NZ,n16
+func (cpu *CPU) CALL_NZ_n16(n uint16) {
+	if !cpu.Registers.GetZeroFlag() {
+		cpu.CALL_n16(n)
+	}
+}
+
+// CALL C,n16
+func (cpu *CPU) CALL_C_n16(n uint16) {
+	if cpu.Registers.GetCarryFlag() {
+		cpu.CALL_n16(n)
+	}
+}
+
+// CALL NC,n16
+func (cpu *CPU) CALL_NC_n16(n uint16) {
+	if !cpu.Registers.GetCarryFlag() {
+		cpu.CALL_n16(n)
+	}
+}
+
+// JP HL | JP n16
+func (cpu *CPU) JP_n16(n uint16) {
+	cpu.Registers.PC = n
+}
+
+// JP Z,n16
+func (cpu *CPU) JP_Z_n16(n uint16) {
+	if cpu.Registers.GetZeroFlag() {
+		cpu.Registers.PC = n
+	}
+}
+
+// JP NZ,n16
+func (cpu *CPU) JP_NZ_n16(n uint16) {
+	if !cpu.Registers.GetZeroFlag() {
+		cpu.Registers.PC = n
+	}
+}
+
+// JP C,n16
+func (cpu *CPU) JP_C_n16(n uint16) {
+	if cpu.Registers.GetCarryFlag() {
+		cpu.Registers.PC = n
+	}
+}
+
+// JP NC,n16
+func (cpu *CPU) JP_NC_n16(n uint16) {
+	if !cpu.Registers.GetCarryFlag() {
+		cpu.Registers.PC = n
+	}
+}
+
+// JR n16? JR e8?
+// TODO: Check this one again
+func (cpu *CPU) JR_e8(e int8) {
+	cpu.Registers.PC = uint16(int16(cpu.Registers.PC) + int16(e))
+}
+
+// JR Z,e8
+func (cpu *CPU) JR_Z_e8(e int8) {
+	if cpu.Registers.GetZeroFlag() {
+		cpu.JR_e8(e)
+	}
+}
+
+// JR NZ,e8
+func (cpu *CPU) JR_NZ_e8(e int8) {
+	if !cpu.Registers.GetZeroFlag() {
+		cpu.JR_e8(e)
+	}
+}
+
+// JR C,e8
+func (cpu *CPU) JR_C_e8(e int8) {
+	if cpu.Registers.GetCarryFlag() {
+		cpu.JR_e8(e)
+	}
+}
+
+// JR NC,e8
+func (cpu *CPU) JR_NC_e8(e int8) {
+	if !cpu.Registers.GetCarryFlag() {
+		cpu.JR_e8(e)
+	}
+}
+
+// RET
+func (cpu *CPU) RET() {
+	low := cpu.Bus.ReadByte(cpu.Registers.SP)
+	cpu.Registers.SP++
+	high := cpu.Bus.ReadByte(cpu.Registers.SP)
+	cpu.Registers.SP++
+	cpu.Registers.PC = uint16(high)<<8 | uint16(low)
+}
+
+// RET Z
+func (cpu *CPU) RET_Z() {
+	if cpu.Registers.GetZeroFlag() {
+		cpu.RET()
+	}
+}
+
+// RET NZ
+func (cpu *CPU) RET_NZ() {
+	if !cpu.Registers.GetZeroFlag() {
+		cpu.RET()
+	}
+}
+
+// RET C
+func (cpu *CPU) RET_C() {
+	if cpu.Registers.GetCarryFlag() {
+		cpu.RET()
+	}
+}
+
+// RET NC
+func (cpu *CPU) RET_NC() {
+	if !cpu.Registers.GetCarryFlag() {
+		cpu.RET()
+	}
+}
+
 // Stack Manipulation Instructions
 
+// ADD SP,e8
+func (cpu *CPU) ADD_SP_e8(e int8) {
+	cpu.Registers.SetZeroFlag(false)
+	cpu.Registers.SetSubtractionFlag(false)
+	cpu.Registers.SetHalfCarryFlag(((cpu.Registers.SP & 0x0F) + (uint16(e) & 0x0F)) > 0x0F)
+	cpu.Registers.SetCarryFlag(((cpu.Registers.SP & 0xFF) + (uint16(e) & 0xFF)) > 0xFF)
+	cpu.Registers.SP = uint16(int16(cpu.Registers.SP) + int16(e))
+}
+
+// DEC SP
+func (cpu *CPU) DEC_SP() {
+	cpu.Registers.SP--
+}
+
+// INC SP
+func (cpu *CPU) INC_SP() {
+	cpu.Registers.SP++
+}
+
+// LD SP,n16 | LD SP,HL
+func (cpu *CPU) LD_SP_n16(n uint16) {
+	cpu.Registers.SP = n
+}
+
 // LD [n16],SP
-func (cpu *CPU) LD_a16_n16(a uint16, n uint16) {
+func (cpu *CPU) LD_a16_SP(a uint16, n uint16) {
 	high := byte(n >> 8)
 	low := byte(n)
 	cpu.Bus.SetByte(a, low)
 	cpu.Bus.SetByte(a+1, high)
+}
+
+// LD HL,SP+e8
+func (cpu *CPU) LD_SP_e8(e int8) {
+	cpu.Registers.SetZeroFlag(false)
+	cpu.Registers.SetSubtractionFlag(false)
+	cpu.Registers.SetHalfCarryFlag(((cpu.Registers.SP & 0x0F) + (uint16(e) & 0x0F)) > 0x0F)
+	cpu.Registers.SetCarryFlag(((cpu.Registers.SP & 0xFF) + (uint16(e) & 0xFF)) > 0xFF)
+	cpu.Registers.HL.Set(uint16(int16(cpu.Registers.SP) + int16(e)))
+}
+
+// POP AF | POP r16
+func (cpu *CPU) POP_r16(r *WordRegister) {
+	*r.low = cpu.Bus.ReadByte(cpu.Registers.SP)
+	cpu.Registers.SP++
+	*r.high = cpu.Bus.ReadByte(cpu.Registers.SP)
+	cpu.Registers.SP++
+}
+
+// PUSH AF | PUSH r16
+func (cpu *CPU) PUSH_r16(r *WordRegister) {
+	cpu.Registers.SP--
+	cpu.Bus.SetByte(cpu.Registers.SP, *r.high)
+	cpu.Registers.SP--
+	cpu.Bus.SetByte(cpu.Registers.SP, *r.high)
+}
+
+// Interrupt-Related Instructions
+
+// DI
+func (cpu *CPU) DI() {
+	cpu.IME = false
+}
+
+// EI
+func (cpu *CPU) EI() {
+	cpu.IME = true
 }

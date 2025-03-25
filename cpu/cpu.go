@@ -5,6 +5,7 @@ import "github.com/carsondecker/go-gb/mmu"
 type CPU struct {
 	Registers *Registers
 	Bus       *mmu.MemoryBus
+	IME       bool
 }
 
 func (cpu *CPU) ExecuteInstruction() {
