@@ -11,6 +11,7 @@ type CPU struct {
 }
 
 // TODO: Make HALT and STOP work in the step command
+// TODO: Implement interrupt handling
 func (cpu *CPU) Step() {
 	nextByte := cpu.Bus.ReadByte(cpu.Registers.PC)
 	cpu.Registers.PC++
