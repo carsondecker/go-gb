@@ -2,11 +2,6 @@ package cpu
 
 // Abbreviations based on these: https://rgbds.gbdev.io/docs/v0.9.1/gbz80.7
 
-// NOP
-func NOP() {
-	// no operation
-}
-
 // Load Instructions
 
 // LD r8,r8 | LD r8,n8 | LD r8,[HL] | LD A,[r16] | LD A,[n16]
@@ -571,6 +566,29 @@ func (cpu *CPU) RET_NC() {
 	}
 }
 
+// RETI
+func (cpu *CPU) RETI() {
+	cpu.EI()
+	cpu.RET()
+}
+
+// RST vec
+func (cpu *CPU) RST(v byte) {
+	cpu.CALL_n16(uint16(v))
+}
+
+// Carry Flag Instructions
+
+// CCF
+func (cpu *CPU) CCF() {
+	cpu.Registers.SetCarryFlag(!cpu.Registers.GetCarryFlag())
+}
+
+// SCF
+func (cpu *CPU) SCF() {
+	cpu.Registers.SetCarryFlag(true)
+}
+
 // Stack Manipulation Instructions
 
 // ADD SP,e8
@@ -640,4 +658,37 @@ func (cpu *CPU) DI() {
 // EI
 func (cpu *CPU) EI() {
 	cpu.IME = true
+}
+
+// Other
+
+// DAA
+func (cpu *CPU) DAA() {
+	if cpu.Registers.GetSubtractionFlag() {
+		var adj byte = 0
+		if cpu.Registers.GetHalfCarryFlag() {
+			adj += 0x6
+		}
+		if cpu.Registers.GetCarryFlag() {
+			adj += 0x60
+		}
+		cpu.Registers.A -= adj
+	} else {
+		var adj byte = 0
+		if cpu.Registers.GetHalfCarryFlag() || (cpu.Registers.A&0xF) > 0x9 {
+			adj += 0x6
+		}
+		if cpu.Registers.GetCarryFlag() || cpu.Registers.A > 0x99 {
+			adj += 0x60
+			cpu.Registers.SetCarryFlag(true)
+		}
+		cpu.Registers.A += adj
+	}
+	cpu.Registers.SetHalfCarryFlag(false)
+	cpu.Registers.SetZeroFlag(cpu.Registers.A == 0)
+}
+
+// NOP
+func NOP() {
+	// no operation
 }
