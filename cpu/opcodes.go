@@ -616,15 +616,15 @@ func (cpu *CPU) LD_SP_n16(n uint16) {
 }
 
 // LD [n16],SP
-func (cpu *CPU) LD_a16_SP(a uint16, n uint16) {
-	high := byte(n >> 8)
-	low := byte(n)
+func (cpu *CPU) LD_a16_SP(a uint16) {
+	high := byte(cpu.Registers.SP >> 8)
+	low := byte(cpu.Registers.SP)
 	cpu.Bus.SetByte(a, low)
 	cpu.Bus.SetByte(a+1, high)
 }
 
 // LD HL,SP+e8
-func (cpu *CPU) LD_SP_e8(e int8) {
+func (cpu *CPU) LD_HL_SP_e8(e int8) {
 	cpu.Registers.SetZeroFlag(false)
 	cpu.Registers.SetSubtractionFlag(false)
 	cpu.Registers.SetHalfCarryFlag(((cpu.Registers.SP & 0x0F) + (uint16(e) & 0x0F)) > 0x0F)
@@ -656,8 +656,14 @@ func (cpu *CPU) DI() {
 }
 
 // EI
+// TODO: Change the effect of ei to be delayed by 1 instruction
 func (cpu *CPU) EI() {
 	cpu.IME = true
+}
+
+// HALT
+func (cpu *CPU) HALT() {
+	cpu.Halted = true
 }
 
 // Other
@@ -691,4 +697,9 @@ func (cpu *CPU) DAA() {
 // NOP
 func NOP() {
 	// no operation
+}
+
+// STOP
+func (cpu *CPU) STOP() {
+	cpu.Stopped = true
 }
